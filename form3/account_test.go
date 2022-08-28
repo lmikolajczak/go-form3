@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/lmikolajczak/go-form3/form3"
-	"os"
 	"testing"
 )
 
 func TestClient_CreateAccount(t *testing.T) {
-	f3, teardown := form3.TestClient(t, os.Getenv("FORM3_API_BASE_URL"))
+	f3, teardown := form3.TestClient(t)
 	defer teardown()
 
 	testcases := []struct {
@@ -69,7 +68,7 @@ func TestClient_CreateAccount(t *testing.T) {
 }
 
 func TestClient_DeleteAccount(t *testing.T) {
-	f3, teardown := form3.TestClient(t, os.Getenv("FORM3_API_BASE_URL"))
+	f3, teardown := form3.TestClient(t)
 	defer teardown()
 
 	organisationId := uuid.NewString()
@@ -121,7 +120,7 @@ func TestClient_DeleteAccount(t *testing.T) {
 }
 
 func TestClient_FetchAccount(t *testing.T) {
-	f3, teardown := form3.TestClient(t, os.Getenv("FORM3_API_BASE_URL"))
+	f3, teardown := form3.TestClient(t)
 	defer teardown()
 
 	account, _ := f3.CreateAccount(uuid.NewString(), accountAttributesRequired(t))

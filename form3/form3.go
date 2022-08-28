@@ -28,7 +28,7 @@ func WithHTTPClient(httpClient HTTPClient) ClientOption {
 	}
 }
 
-// Client represents Form3 REST API client
+// Client represents Form3 REST API client.
 type Client struct {
 	baseURL    string
 	httpClient HTTPClient
@@ -39,7 +39,7 @@ func NewClient(baseURL string, options ...ClientOption) *Client {
 	c := &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 15 * time.Second,
 		},
 	}
 
