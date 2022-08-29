@@ -5,10 +5,49 @@ package form3_test
 
 import (
 	"fmt"
+	"github.com/go-test/deep"
 	"github.com/google/uuid"
 	"github.com/lmikolajczak/go-form3/form3"
 	"testing"
 )
+
+func accountAttributesRequired(t *testing.T) *form3.AccountAttributes {
+	t.Helper()
+	return &form3.AccountAttributes{
+		Country: form3.String("NL"),
+		Name:    []string{"L. Mikolajczak"},
+	}
+}
+
+func accountAttributesOptional(t *testing.T) *form3.AccountAttributes {
+	t.Helper()
+	attributes := accountAttributesRequired(t)
+
+	attributes.AccountClassification = form3.String("Personal")
+	attributes.AccountMatchingOptOut = form3.Bool(false)
+	attributes.AccountNumber = "123654"
+	attributes.AlternativeNames = []string{"Alternative Names"}
+	attributes.BankID = "ABNA"
+	attributes.BankIDCode = "ABNANL"
+	attributes.BaseCurrency = "EUR"
+	attributes.Bic = "ABNANL2A"
+	attributes.Iban = "NL91ABNA0417164300"
+	attributes.JointAccount = form3.Bool(false)
+	attributes.SecondaryIdentification = "Secondary Identification"
+	attributes.Status = form3.String("pending")
+	attributes.Switched = form3.Bool(false)
+
+	return attributes
+}
+
+func accountAttributesInvalid(t *testing.T) *form3.AccountAttributes {
+	t.Helper()
+	attributes := accountAttributesRequired(t)
+	// Invalid account number
+	attributes.AccountNumber = "%$#@!123654"
+
+	return attributes
+}
 
 func TestClient_CreateAccount(t *testing.T) {
 	f3, teardown := form3.TestClient(t)
@@ -31,10 +70,7 @@ func TestClient_CreateAccount(t *testing.T) {
 		{
 			name:       "with optional attributes",
 			attributes: accountAttributesOptional(t),
-			wantAttrs: &form3.AccountAttributes{
-				Country: form3.String("NL"),
-				Name:    []string{"L. Mikolajczak"},
-			},
+			wantAttrs:  accountAttributesOptional(t),
 		},
 		{
 			name: "without attributes",
@@ -57,10 +93,12 @@ func TestClient_CreateAccount(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			account, err := f3.CreateAccount(uuid.NewString(), tc.attributes)
-
-			testErrorMessage(t, err, tc.wantErr)
-			if account != nil {
+			organisationID := uuid.NewString()
+			account, err := f3.CreateAccount(organisationID, tc.attributes)
+			if err != nil {
+				testErrorMessage(t, err, tc.wantErr)
+			} else {
+				testUUID(t, account.OrganisationID, organisationID)
 				testAccountAttrs(t, account.Attributes, tc.wantAttrs)
 			}
 		})
@@ -71,21 +109,18 @@ func TestClient_DeleteAccount(t *testing.T) {
 	f3, teardown := form3.TestClient(t)
 	defer teardown()
 
-	organisationId := uuid.NewString()
-	account, _ := f3.CreateAccount(organisationId, accountAttributesRequired(t))
+	account, _ := f3.CreateAccount(uuid.NewString(), accountAttributesRequired(t))
 
 	testcases := []struct {
 		name           string
 		accountID      string
 		accountVersion int64
-		organisationID string
 		wantErr        error
 	}{
 		{
 			name:           "account does not exist",
 			accountID:      uuid.NewString(),
 			accountVersion: 0,
-			organisationID: organisationId,
 			wantErr: &form3.F3Error{
 				StatusCode:   404,
 				ErrorCode:    0,
@@ -96,7 +131,6 @@ func TestClient_DeleteAccount(t *testing.T) {
 			name:           "invalid version for existing account",
 			accountID:      account.ID,
 			accountVersion: 123,
-			organisationID: organisationId,
 			wantErr: &form3.F3Error{
 				StatusCode:   409,
 				ErrorCode:    0,
@@ -113,8 +147,9 @@ func TestClient_DeleteAccount(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := f3.DeleteAccount(tc.accountID, tc.accountVersion)
-
-			testErrorMessage(t, err, tc.wantErr)
+			if err != nil {
+				testErrorMessage(t, err, tc.wantErr)
+			}
 		})
 	}
 }
@@ -123,7 +158,7 @@ func TestClient_FetchAccount(t *testing.T) {
 	f3, teardown := form3.TestClient(t)
 	defer teardown()
 
-	account, _ := f3.CreateAccount(uuid.NewString(), accountAttributesRequired(t))
+	acc, _ := f3.CreateAccount(uuid.NewString(), accountAttributesRequired(t))
 	nonExistingAccountId := uuid.NewString()
 
 	testcases := []struct {
@@ -143,7 +178,7 @@ func TestClient_FetchAccount(t *testing.T) {
 		},
 		{
 			name:      "success",
-			accountID: account.ID,
+			accountID: acc.ID,
 			wantAttrs: &form3.AccountAttributes{
 				Country: form3.String("NL"),
 				Name:    []string{"L. Mikolajczak"},
@@ -153,41 +188,42 @@ func TestClient_FetchAccount(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			fetched, err := f3.FetchAccount(tc.accountID)
-
-			testErrorMessage(t, err, tc.wantErr)
-			if err == nil {
-				testAccountId(t, fetched, tc.accountID)
-				testAccountAttrs(t, fetched.Attributes, tc.wantAttrs)
+			account, err := f3.FetchAccount(tc.accountID)
+			if err != nil {
+				testErrorMessage(t, err, tc.wantErr)
+			} else {
+				testUUID(t, account.ID, tc.accountID)
+				testAccountAttrs(t, account.Attributes, tc.wantAttrs)
 			}
 		})
 	}
 }
 
-func accountAttributesRequired(t *testing.T) *form3.AccountAttributes {
+func testUUID(t *testing.T, uuid string, want string) {
 	t.Helper()
-	return &form3.AccountAttributes{
-		Country: form3.String("NL"),
-		Name:    []string{"L. Mikolajczak"},
+	if got := uuid; got != want {
+		t.Errorf("uuid = %s; want: %s", got, want)
 	}
 }
 
-func accountAttributesOptional(t *testing.T) *form3.AccountAttributes {
+func testAccountAttrs(t *testing.T, attrs *form3.AccountAttributes, want *form3.AccountAttributes) {
 	t.Helper()
-	attributes := accountAttributesRequired(t)
-
-	attributes.AccountNumber = "123654"
-	attributes.BaseCurrency = "EUR"
-	attributes.Bic = "INGBNL2A"
-
-	return attributes
+	if diff := deep.Equal(attrs, want); diff != nil {
+		t.Error(diff)
+	}
 }
 
-func accountAttributesInvalid(t *testing.T) *form3.AccountAttributes {
+func testErrorMessage(t *testing.T, err error, want error) {
 	t.Helper()
-	attributes := accountAttributesRequired(t)
-	// Invalid account number
-	attributes.AccountNumber = "%$#@!123654"
-
-	return attributes
+	if err != nil && want == nil {
+		t.Errorf("error message: %s; want: nil", err.Error())
+	}
+	if err == nil && want != nil {
+		t.Errorf("error message: nil; want: %s", want.Error())
+	}
+	if err != nil && want != nil {
+		if got := err.Error(); got != want.Error() {
+			t.Errorf("error message: %s; want: %s", got, want)
+		}
+	}
 }

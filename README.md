@@ -52,8 +52,13 @@ func main() {
 }
 ```
 
-### Possible improvements:
+### Notes:
+
+1. `form3_test.go` contains some general tests that do not run against provided fake account API.
+2. `account_test.go` tests run against provided fake account API.
+
+Possible improvements:
 
 1. Introduce `context.Context` in `Client.Request` to allow granular control over HTTP request timeouts. Currently, it's not possible to specify the HTTP request timeout (default 15sec), unless you plug in custom HTTP client with a different timout via `WithHTTPClient` option.
 2. `CreateAccount`, `FetchAccount`, `DeleteAccount` methods are registered directly on the client. If the project grows (support different resources) it would be better to separate the resources implementation from the client.
-3. I haven't introduced any external library for testing yet but if the test suite starts to grow then something like `testify` could help to organise it.
+3. If the test suite starts to grow then something like `testify` could help to organise it and help with assertions in general.

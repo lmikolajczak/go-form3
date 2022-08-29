@@ -136,3 +136,6 @@ func (c *Client) marshal(v interface{}) ([]byte, error) {
 
 // String returns a pointer to the given string v.
 func String(v string) *string { return &v }
+
+// Bool returns a pointer to the given bool v.
+func Bool(v bool) *bool { return &v }
