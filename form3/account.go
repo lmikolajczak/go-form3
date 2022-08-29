@@ -15,11 +15,6 @@ type Account struct {
 	Version        *int64             `json:"version,omitempty"`
 }
 
-// String returns a simple string representation of the Account.
-func (a Account) String() string {
-	return fmt.Sprintf("Account(id=%s, version=%d)", a.ID, *a.Version)
-}
-
 // AccountAttributes represents attributes of a single account.
 type AccountAttributes struct {
 	AccountClassification   *string  `json:"account_classification,omitempty"`
