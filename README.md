@@ -4,6 +4,8 @@
 
 However, I try to contribute to open-source Go projects and maintain some personal ones. Besides that I learned Go by studying books and checking the most popular Go projects on GitHub. Therefore, code in this repo is based on the good practices and is influenced by the patterns that I observed in various open source projects and in Go's standard library.
 
+Task description and instructions can be found here: [form3tech-oss-interview](https://github.com/form3tech-oss/interview-accountapi)
+
 ### Test:
 
 ```
